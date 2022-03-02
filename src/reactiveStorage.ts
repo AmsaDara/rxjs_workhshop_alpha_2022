@@ -1,35 +1,69 @@
-import { from, Observable } from "rxjs";
+import { buffer, bufferTime, from, fromEvent, map, Observable } from 'rxjs';
 
-const render = (anchor,list)=>{
-    anchor.innerHTML = `${JSON.stringify(list,undefined,3)}`
+
+const render = anchor => list => {
+    anchor.innerHTML = JSON.stringify(list);
 }
 
-const init=()=>{
-    let output = document.querySelector("#output");
-    let addAccountButton = document.querySelector("#addAccount");
-    let removeAccountButton = document.querySelector("#removeAccount");
-    let cleanUpAccountListButton = document.querySelector("#cleanUpAccountList");
-    return{
+const init = () => {
+    let output = document.querySelector('#output');
+    let addAccountButton = document.querySelector('#addAccount');
+    let removeAccountButton = document.querySelector('#removeAccount');
+    let clearAccountListButton = document.querySelector('#cleanUpAccountList');
+    return {
         output,
         addAccountButton,
         removeAccountButton,
-        cleanUpAccountListButton
+        clearAccountListButton
     }
+
 }
 
-const initState =()=>{
-    return[{code:'411',label:'client'}]
+
+
+const localStorageStream = new Observable(subscriber=>{
+    subscriber.next(JSON.parse(localStorage.getItem('list')))
+})
+
+
+
+const saveAccount = (account) => {
+    let list = JSON.parse(localStorage.getItem('list')) || [];
+    list.push(account);
+    localStorage.setItem('list', JSON.stringify(list))
 }
 
-const localStorageStream$ = ():Observable<any>=>{
-    return from(JSON.parse(localStorage.getItem('list')))
+const removeAccount = (id) => {
+    let list = JSON.parse(localStorage.getItem('list'));
+    list = list.filter(a => a.id !== id);
+    localStorage.setItem('list', JSON.stringify(list))
 }
 
-const addAccount = (account,list) =>{
-    return list.push(account)
-}
+const controls = init()
 
-const controls=init()
+const addAccountButtonSource = fromEvent(controls.addAccountButton, 'click')
+const removeAccountButtonSource = fromEvent(controls.removeAccountButton, 'click')
+const clearAccountListButtonSource = fromEvent(controls.clearAccountListButton, 'click')
 
-console.log(controls);
- 
+
+const addAccountSubscription = addAccountButtonSource.subscribe({
+    next: data => saveAccount({ id: 2, code: '401', label: 'Fournisseurs' })
+});
+
+const removeAccountSubscription = removeAccountButtonSource.subscribe({
+    next: (data) => {
+        removeAccount(2)
+    }
+})
+const clearAccountSubscription = clearAccountListButtonSource.subscribe({
+    next: data => localStorage.setItem('list', '[]')
+})
+
+
+localStorageStream.
+    subscribe({
+        next: data => {
+            console.log(data)
+            render(controls.output)(data)
+        }
+    })
